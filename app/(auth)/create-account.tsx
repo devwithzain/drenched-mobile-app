@@ -6,17 +6,68 @@ import {
 	ScrollView,
 	TouchableOpacity,
 	KeyboardAvoidingView,
+	Alert,
+	ActivityIndicator,
 } from "react-native";
-import React from "react";
+import React, { useState } from "react";
 import { useRouter } from "expo-router";
 import Colors from "@/constants/colors";
 import { useColorScheme } from "nativewind";
 import Icon from "@expo/vector-icons/FontAwesome5";
+import { useAuth } from "@/context/AuthContext";
 
 export default function CreateAccountScreen() {
 	const router = useRouter();
 	const { colorScheme } = useColorScheme();
 	const isDark = colorScheme === "dark";
+	const { register } = useAuth();
+
+	const [name, setName] = useState("");
+	const [email, setEmail] = useState("");
+	const [password, setPassword] = useState("");
+	const [confirmPassword, setConfirmPassword] = useState("");
+	const [loading, setLoading] = useState(false);
+
+	const handleRegister = async () => {
+		if (
+			!name.trim() ||
+			!email.trim() ||
+			!password.trim() ||
+			!confirmPassword.trim()
+		) {
+			Alert.alert("Error", "Please fill in all fields");
+			return;
+		}
+
+		if (password !== confirmPassword) {
+			Alert.alert("Error", "Passwords do not match");
+			return;
+		}
+
+		if (password.length < 8) {
+			Alert.alert("Error", "Password must be at least 8 characters long");
+			return;
+		}
+
+		setLoading(true);
+		const result = await register(name, email, password);
+		setLoading(false);
+
+		if (result.success) {
+			router.replace("/(tabs)");
+		} else {
+			// Format database validation errors if available
+			let errorMsg = result.message || "An error occurred";
+			if (result.errors) {
+				const keys = Object.keys(result.errors);
+				if (keys.length > 0) {
+					errorMsg = result.errors[keys[0]][0];
+				}
+			}
+			console.log(result);
+			// Alert.alert("Registration Failed", errorMsg);
+		}
+	};
 
 	return (
 		<KeyboardAvoidingView
@@ -42,6 +93,8 @@ export default function CreateAccountScreen() {
 						className="bg-slate-100 dark:bg-slate-800 rounded-[14px] p-4 text-[15px] text-textDark dark:text-slate-100"
 						placeholder="Evelyn Thorne"
 						placeholderTextColor={isDark ? "#64748b" : Colors.textLight}
+						value={name}
+						onChangeText={setName}
 					/>
 				</View>
 				<View className="mb-5">
@@ -54,6 +107,8 @@ export default function CreateAccountScreen() {
 						placeholderTextColor={isDark ? "#64748b" : Colors.textLight}
 						keyboardType="email-address"
 						autoCapitalize="none"
+						value={email}
+						onChangeText={setEmail}
 					/>
 				</View>
 				<View className="mb-5">
@@ -65,6 +120,8 @@ export default function CreateAccountScreen() {
 						placeholder="••••••••"
 						placeholderTextColor={isDark ? "#64748b" : Colors.textLight}
 						secureTextEntry
+						value={password}
+						onChangeText={setPassword}
 					/>
 				</View>
 				<View className="mb-5">
@@ -76,19 +133,28 @@ export default function CreateAccountScreen() {
 						placeholder="••••••••"
 						placeholderTextColor={isDark ? "#64748b" : Colors.textLight}
 						secureTextEntry
+						value={confirmPassword}
+						onChangeText={setConfirmPassword}
 					/>
 				</View>
 				<TouchableOpacity
-					className="bg-primary p-4 rounded-[30px] items-center mt-2"
+					className="bg-primary p-4 rounded-[30px] items-center justify-center mt-2 min-h-[52px]"
 					activeOpacity={0.8}
-					onPress={() => router.replace("/(tabs)")}>
-					<Text className="text-white text-[16px] font-semibold">
-						Create Account
-					</Text>
+					onPress={handleRegister}
+					disabled={loading}>
+					{loading ? (
+						<ActivityIndicator color="#fff" />
+					) : (
+						<Text className="text-white text-[16px] font-semibold">
+							Create Account
+						</Text>
+					)}
 				</TouchableOpacity>
 				<View className="flex-row items-center my-6 gap-4">
 					<View className="flex-1 h-[1px] bg-border dark:bg-slate-700" />
-					<Text className="text-textLight dark:text-slate-500 text-[13px]">OR JOIN WITH</Text>
+					<Text className="text-textLight dark:text-slate-500 text-[13px]">
+						OR JOIN WITH
+					</Text>
 					<View className="flex-1 h-[1px] bg-border dark:bg-slate-700" />
 				</View>
 				<View className="flex-row justify-center gap-5 mb-6">
@@ -119,8 +185,14 @@ export default function CreateAccountScreen() {
 				</View>
 				<Text className="text-center text-[11px] text-textLight dark:text-slate-500 mt-5 leading-[18px]">
 					By creating an account, you agree to our{" "}
-					<Text className="text-textMedium dark:text-slate-400 underline">Terms of Service</Text>{" "}
-					and <Text className="text-textMedium dark:text-slate-400 underline">Privacy Policy</Text>.
+					<Text className="text-textMedium dark:text-slate-400 underline">
+						Terms of Service
+					</Text>{" "}
+					and{" "}
+					<Text className="text-textMedium dark:text-slate-400 underline">
+						Privacy Policy
+					</Text>
+					.
 				</Text>
 			</ScrollView>
 		</KeyboardAvoidingView>

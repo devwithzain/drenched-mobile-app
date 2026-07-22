@@ -4,12 +4,53 @@ import Colors from "@/constants/colors";
 import { useColorScheme } from "nativewind";
 import { PROFILE_MENU } from "@/constants/data";
 import Icon from "@expo/vector-icons/FontAwesome5";
-import { View, Text, TouchableOpacity, ScrollView, Image } from "react-native";
+import {
+	View,
+	Text,
+	TouchableOpacity,
+	ScrollView,
+	Image,
+	ActivityIndicator,
+} from "react-native";
+import { useAuth } from "@/context/AuthContext";
+import { API_BASE_URL } from "@/services/apiClient";
 
 export default function ProfileScreen() {
 	const router = useRouter();
 	const { colorScheme } = useColorScheme();
 	const isDark = colorScheme === "dark";
+	const { user, logout, isLoading } = useAuth();
+
+	const handleLogout = async () => {
+		await logout();
+		router.replace("/(auth)/welcome");
+	};
+
+	const avatarUri = user?.image
+		? `${API_BASE_URL}/storage/${user.image}`
+		: null;
+
+	const initials = user?.name
+		? user.name
+				.split(" ")
+				.map((n) => n[0])
+				.slice(0, 2)
+				.join("")
+				.toUpperCase()
+		: "?";
+
+	const isAdmin = user?.role === "admin";
+
+	if (isLoading) {
+		return (
+			<View className="flex-1 items-center justify-center bg-white dark:bg-slate-900">
+				<ActivityIndicator
+					size="large"
+					color={Colors.primary}
+				/>
+			</View>
+		);
+	}
 
 	return (
 		<ScrollView
@@ -17,12 +58,18 @@ export default function ProfileScreen() {
 			showsVerticalScrollIndicator={false}>
 			<View className="items-center pt-[50px] pb-[30px]">
 				<View className="relative mb-4">
-					<Image
-						source={{
-							uri: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200",
-						}}
-						className="w-[100px] h-[100px] rounded-full"
-					/>
+					{avatarUri ? (
+						<Image
+							source={{ uri: avatarUri }}
+							className="w-[100px] h-[100px] rounded-full"
+						/>
+					) : (
+						<View className="w-[100px] h-[100px] rounded-full bg-primary items-center justify-center">
+							<Text className="text-white text-[36px] font-bold">
+								{initials}
+							</Text>
+						</View>
+					)}
 					<TouchableOpacity
 						className="absolute bottom-0 right-0 w-8 h-8 bg-primary rounded-full justify-center items-center border-[3px] border-white dark:border-slate-900"
 						onPress={() => router.push("/edit-profile")}>
@@ -33,21 +80,27 @@ export default function ProfileScreen() {
 						/>
 					</TouchableOpacity>
 				</View>
-				<Text className="text-[24px] text-textDark dark:text-slate-100 mb-2 font-semibold">
-					Sarah Mitchell
+
+				<Text className="text-[24px] text-textDark dark:text-slate-100 mb-1 font-semibold">
+					{user?.name ?? "Guest"}
 				</Text>
+				<Text className="text-[13px] text-textMedium dark:text-slate-400 mb-3">
+					{user?.email ?? ""}
+				</Text>
+
 				<View className="flex-row items-center bg-primaryLight dark:bg-cyan-900 px-3.5 py-1.5 rounded-full">
 					<Icon
-						name="crown"
+						name={isAdmin ? "shield-alt" : "crown"}
 						size={10}
 						color={Colors.primary}
 					/>
 					<Text className="text-primary text-[12px] font-bold tracking-[0.5px]">
-						{" "}
-						PREMIUM MEMBER
+						{"  "}
+						{isAdmin ? "ADMIN" : "PREMIUM MEMBER"}
 					</Text>
 				</View>
 			</View>
+
 			<View className="flex-row justify-around px-5 pb-[30px]">
 				{[
 					{ value: "1,240", label: "MIN. MEDITATED" },
@@ -66,6 +119,7 @@ export default function ProfileScreen() {
 					</View>
 				))}
 			</View>
+
 			<View className="px-5">
 				{PROFILE_MENU.map((item) => (
 					<TouchableOpacity
@@ -99,9 +153,10 @@ export default function ProfileScreen() {
 					</TouchableOpacity>
 				))}
 			</View>
+
 			<TouchableOpacity
 				className="flex-row items-center justify-center gap-2 mx-5 mt-6 mb-5 p-4 border border-red-200 dark:border-red-900 rounded-[16px]"
-				onPress={() => router.replace("/(auth)/welcome")}>
+				onPress={handleLogout}>
 				<Icon
 					name="sign-out-alt"
 					size={16}

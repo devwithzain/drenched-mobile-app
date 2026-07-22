@@ -6,16 +6,41 @@ import {
 	ScrollView,
 	TouchableOpacity,
 	KeyboardAvoidingView,
+	Alert,
+	ActivityIndicator,
 } from "react-native";
-import React from "react";
+import React, { useState } from "react";
 import { useRouter } from "expo-router";
 import { useColorScheme } from "nativewind";
 import Icon from "@expo/vector-icons/FontAwesome5";
+import { useAuth } from "@/context/AuthContext";
 
 export default function LoginScreen() {
 	const router = useRouter();
 	const { colorScheme } = useColorScheme();
 	const isDark = colorScheme === "dark";
+	const { login } = useAuth();
+
+	const [email, setEmail] = useState("");
+	const [password, setPassword] = useState("");
+	const [loading, setLoading] = useState(false);
+
+	const handleLogin = async () => {
+		if (!email.trim() || !password.trim()) {
+			Alert.alert("Error", "Please fill in all fields");
+			return;
+		}
+
+		setLoading(true);
+		const result = await login(email, password);
+		setLoading(false);
+
+		if (result.success) {
+			router.replace("/(tabs)");
+		} else {
+			Alert.alert("Login Failed", result.message || "An error occurred");
+		}
+	};
 
 	return (
 		<KeyboardAvoidingView
@@ -43,6 +68,8 @@ export default function LoginScreen() {
 						placeholderTextColor={isDark ? "#64748b" : "#9CA3AF"}
 						keyboardType="email-address"
 						autoCapitalize="none"
+						value={email}
+						onChangeText={setEmail}
 					/>
 				</View>
 				<View className="mb-5">
@@ -56,6 +83,8 @@ export default function LoginScreen() {
 						placeholder="••••••••"
 						placeholderTextColor={isDark ? "#64748b" : "#9CA3AF"}
 						secureTextEntry
+						value={password}
+						onChangeText={setPassword}
 					/>
 					<TouchableOpacity
 						onPress={() => router.push("/(auth)/forgot-password")}>
@@ -65,13 +94,21 @@ export default function LoginScreen() {
 					</TouchableOpacity>
 				</View>
 				<TouchableOpacity
-					className="mt-2 items-center rounded-full bg-primary py-4"
-					onPress={() => router.replace("/(tabs)")}>
-					<Text className="text-base font-semibold text-white">Sign In</Text>
+					className="mt-2 items-center rounded-full bg-primary py-4 justify-center min-h-[52px]"
+					onPress={handleLogin}
+					disabled={loading}
+					activeOpacity={0.8}>
+					{loading ? (
+						<ActivityIndicator color="#fff" />
+					) : (
+						<Text className="text-base font-semibold text-white">Sign In</Text>
+					)}
 				</TouchableOpacity>
 				<View className="my-6 flex-row items-center">
 					<View className="h-px flex-1 bg-border dark:bg-slate-700" />
-					<Text className="mx-4 text-[13px] text-textLight dark:text-slate-500">OR</Text>
+					<Text className="mx-4 text-[13px] text-textLight dark:text-slate-500">
+						OR
+					</Text>
 					<View className="h-px flex-1 bg-border dark:bg-slate-700" />
 				</View>
 				<View className="mb-6 flex-row justify-center gap-5">
@@ -91,7 +128,9 @@ export default function LoginScreen() {
 					</TouchableOpacity>
 				</View>
 				<View className="mt-6 flex-row justify-center">
-					<Text className="text-sm text-textMedium dark:text-slate-400">New to Drenched? </Text>
+					<Text className="text-sm text-textMedium dark:text-slate-400">
+						New to Drenched?{" "}
+					</Text>
 					<TouchableOpacity
 						onPress={() => router.push("/(auth)/create-account")}>
 						<Text className="text-sm font-semibold text-textDark dark:text-slate-100">
